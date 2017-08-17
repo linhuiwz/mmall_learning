@@ -40,6 +40,135 @@ public class TimeUnitTest {
 
 package com.lh.concurrent;
 
+import java.util.concurrent.Semaphore;
+import java.util.concurrent.TimeUnit;
+
+public class SemaphoreTest {
+
+	public static void main(String[] args) {
+		WC wc = new WC();
+
+		new Thread(() -> wc.use()).start();
+		new Thread(() -> wc.use()).start();
+		new Thread(() -> wc.use()).start();
+		
+		new Thread(() -> wc.use()).start();
+		new Thread(() -> wc.use()).start();
+	}
+}
+
+class WC {
+	private Semaphore semaphore = new Semaphore(3);// 最大线程许可量
+
+	public void use() {
+		try {
+			// 获得许可
+			semaphore.acquire();
+			System.out.println(Thread.currentThread().getName() + " 正在使用卫生间");
+			TimeUnit.SECONDS.sleep(3);
+			System.out.println(Thread.currentThread().getName() + " 使用完毕");
+
+		} catch (InterruptedException e) {
+			e.printStackTrace();
+		} finally {
+			// 释放许可
+			semaphore.release();
+		}
+	}
+}
+
+package com.lh.concurrent;
+
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.LinkedBlockingQueue;
+
+public class ProducerConsumerModelBlockQueueImpl {
+
+	public static void main(String[] args) {
+		final int maxSize = 10;// 产品最大库存量
+		BlockingQueue<Product> buffer = new LinkedBlockingQueue<Product>(
+				maxSize);
+		ExecutorService es = Executors.newFixedThreadPool(5);
+
+		// 两个生产者
+		es.execute(new Producer(buffer));
+		es.execute(new Producer(buffer));
+
+		// 三个消费者
+		es.execute(new Consumer(buffer));
+		es.execute(new Consumer(buffer));
+		es.execute(new Consumer(buffer));
+
+		es.shutdown();
+
+	}
+
+	// 产品
+	static class Product {
+		private String name;
+
+		public Product(String name) {
+			this.name = name;
+		}
+
+		@Override
+		public String toString() {
+			return name;
+		}
+	}
+
+	// 生产者
+	static class Producer implements Runnable {
+		private BlockingQueue<Product> buffer;
+
+		public Producer(BlockingQueue<Product> buffer) {
+			this.buffer = buffer;
+		}
+
+		public void run() {
+			while (true) {
+				Product product = new Product("MAC");
+				try {
+					buffer.put(product);
+					System.out.println("生产者["
+							+ Thread.currentThread().getName() + "]生产了一个产品："
+							+ product);
+				} catch (InterruptedException e) {
+					e.printStackTrace();
+				}
+			}
+		}
+	}
+
+	// 消费者
+	static class Consumer implements Runnable {
+		private BlockingQueue<Product> buffer;
+
+		public Consumer(BlockingQueue<Product> buffer) {
+			this.buffer = buffer;
+		}
+
+		public void run() {
+			while (true) {
+				try {
+					System.out.println("消费者["
+							+ Thread.currentThread().getName() + "]消费了一个产品："
+							+ buffer.take());
+				} catch (InterruptedException e) {
+					e.printStackTrace();
+				}
+			}
+		}
+	}
+
+}
+
+
+
+package com.lh.concurrent;
+
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 

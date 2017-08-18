@@ -511,4 +511,84 @@ public class AtomicIntegerTest {
 	}
 }
 
+package com.lh.concurrent;
 
+import java.util.concurrent.TimeUnit;
+
+public class WaitAndNotifyTest {
+
+	public static void main(String[] args) throws InterruptedException {
+		Object lock = new Object();
+		TaskA ta = new TaskA(lock);
+		TaskB tb = new TaskB(lock);
+		
+		Thread t = new Thread(() -> ta.work());
+		Thread t2 = new Thread(() -> tb.work());
+		t.start();
+		t2.start();
+		
+		t.join();
+		t2.join();
+		
+		System.out.println("END");
+	}
+	
+}
+
+
+class TaskA {
+	
+	private Object lock;
+	
+	public TaskA(Object lock) {
+		this.lock = lock;
+	}
+
+	public void work() {
+		System.out.println("A starts to work...");
+		try {
+			TimeUnit.SECONDS.sleep(5);
+		} catch (InterruptedException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		
+		synchronized (lock) {
+			try {
+				System.out.println("A is waiting for B ...");
+				lock.wait();
+			} catch (InterruptedException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+		}
+		
+		System.out.println("A ends to work...");
+	}
+}
+
+class TaskB {
+	
+	private Object lock;
+	
+	public TaskB(Object lock) {
+		this.lock = lock;
+	}
+
+	public void work() {
+		System.out.println("B starts to work...");
+		try {
+			TimeUnit.SECONDS.sleep(10);
+		} catch (InterruptedException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		
+		synchronized (lock) {
+			lock.notify();
+			System.out.println("B notifies A");
+		}
+		
+		System.out.println("B ends to work...");
+	}
+}
